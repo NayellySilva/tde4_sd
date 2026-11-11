@@ -121,40 +121,51 @@ PAINEL_HTML = """<!DOCTYPE html>
 <html lang="pt-br">
 <head>
 <meta charset="utf-8">
-<title>ShopNow • Painel do Balanceador</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel do balanceador</title>
 <style>
-  * { box-sizing: border-box; margin: 0; }
-  body { font-family: "Segoe UI", system-ui, sans-serif; background: #09090b; color: #fafafa; padding: 32px; }
-  h1 { font-size: 28px; } h1 span { color: #facc15; }
-  .sub { color: #a1a1aa; margin: 6px 0 28px; }
-  .resumo { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
-  .box { background: #18181b; border: 1px solid #27272a; border-radius: 14px; padding: 18px; }
-  .box small { color: #a1a1aa; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
-  .box div { font-size: 30px; font-weight: 800; margin-top: 6px; }
-  .servidores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .srv { background: #18181b; border-radius: 14px; padding: 22px; border: 2px solid #27272a; transition: all .3s; }
-  .srv.on  { border-color: #16a34a; }
-  .srv.off { border-color: #dc2626; background: #2a0f0f; }
-  .srv h2 { font-size: 22px; display: flex; justify-content: space-between; align-items: center; }
-  .tag { font-size: 12px; padding: 4px 10px; border-radius: 999px; font-weight: 800; }
-  .on .tag  { background: #16a34a; } .off .tag { background: #dc2626; animation: pisca 1s infinite; }
-  @keyframes pisca { 50% { opacity: .4; } }
-  .linha { display: flex; justify-content: space-between; color: #d4d4d8; margin-top: 12px; }
-  .linha b { color: #fff; }
-  .barra { height: 10px; background: #27272a; border-radius: 99px; margin-top: 16px; overflow: hidden; }
-  .barra i { display: block; height: 100%; border-radius: 99px; transition: width .4s; }
-  .controles { margin-top: 28px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  .controles small { color: #a1a1aa; margin-right: 6px; }
-  button { padding: 10px 16px; border-radius: 8px; border: 1px solid #3f3f46; background: #18181b;
-           color: #fafafa; font-weight: 700; cursor: pointer; }
-  button.ativo { background: #facc15; color: #09090b; border-color: #facc15; }
-  button.trafego { background: #2563eb; border-color: #2563eb; margin-left: auto; }
-  #msg { color: #a1a1aa; margin-top: 14px; min-height: 20px; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: #f1f3f5; color: #222; font-family: Arial, sans-serif; }
+  .pagina { max-width: 1050px; margin: auto; }
+  h1 { margin: 0; font-size: 26px; }
+  .sub { margin: 8px 0 24px; color: #666; font-size: 14px; }
+  .resumo { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .box { padding: 16px; background: #fff; border: 1px solid #ddd; border-radius: 5px; }
+  .box small { color: #666; font-size: 12px; }
+  .box div { margin-top: 8px; color: #2459a6; font-size: 26px; font-weight: bold; }
+  .servidores { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .srv { padding: 16px; background: #fff; border: 1px solid #ddd; border-left: 4px solid #aaa; border-radius: 5px; }
+  .srv.on { border-left-color: #299653; }
+  .srv.off { border-left-color: #cf3e3e; }
+  .srv h2 { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 16px; font-size: 18px; }
+  .tag { color: #555; font-size: 11px; font-weight: normal; }
+  .on .tag { color: #258044; }
+  .off .tag { color: #b52e2e; }
+  .linha { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; color: #555; font-size: 13px; }
+  .linha b { color: #222; }
+  .barra { height: 8px; margin-top: 14px; overflow: hidden; background: #e5e5e5; }
+  .barra i { display: block; height: 100%; background: #3974c5; }
+  .controles { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+  .controles small { margin-right: 4px; color: #555; }
+  #botoes { display: flex; flex-wrap: wrap; gap: 6px; }
+  button { padding: 9px 12px; border: 1px solid #bbb; border-radius: 4px; background: #fff; color: #222; cursor: pointer; }
+  button:hover { background: #eee; }
+  button.ativo { border-color: #2459a6; background: #2459a6; color: #fff; }
+  button.trafego { margin-left: auto; border-color: #2459a6; background: #2459a6; color: #fff; }
+  button.trafego:hover { background: #194780; }
+  #msg { min-height: 20px; margin-top: 12px; color: #555; font-size: 13px; }
+  @media (max-width: 700px) {
+    body { padding: 16px; }
+    .resumo { grid-template-columns: repeat(2, 1fr); }
+    .servidores { grid-template-columns: 1fr; }
+    button.trafego { margin-left: 0; }
+  }
 </style>
 </head>
 <body>
-  <h1>⚖️ Painel do Balanceador — Shop<span>Now</span></h1>
-  <p class="sub">Atualiza a cada 1 segundo. Derrube um container (docker stop shopnow-app2) e veja o que acontece.</p>
+  <div class="pagina">
+  <h1>Painel do balanceador</h1>
+  <p class="sub">A página atualiza automaticamente. Para testar uma falha, pare um dos containers da aplicação.</p>
 
   <div class="resumo">
     <div class="box"><small>Algoritmo</small><div id="alg">-</div></div>
@@ -166,15 +177,14 @@ PAINEL_HTML = """<!DOCTYPE html>
   <div class="servidores" id="servidores"></div>
 
   <div class="controles">
-    <small>Trocar algoritmo:</small>
+    <small>Algoritmo de distribuição:</small>
     <span id="botoes"></span>
-    <button class="trafego" onclick="gerarTrafego()">🚀 Gerar tráfego (500 acessos)</button>
+    <button class="trafego" onclick="gerarTrafego()">Gerar tráfego (500 acessos)</button>
   </div>
   <p id="msg"></p>
+  </div>
 
 <script>
-const CORES = { app1: "#2563eb", app2: "#16a34a", app3: "#ea580c" };
-
 async function atualizar() {
   try {
     const s = await (await fetch("/lb/status")).json();
@@ -188,12 +198,12 @@ async function atualizar() {
       const nome = b.name.split(":")[0];
       const pct = (b.total_requests / soma * 100).toFixed(1);
       return `<div class="srv ${b.healthy ? "on" : "off"}">
-        <h2>🖥️ ${nome} <span class="tag">${b.healthy ? "ONLINE" : "FORA DO AR"}</span></h2>
+        <h2>${nome} <span class="tag">${b.healthy ? "Online" : "Fora do ar"}</span></h2>
         <div class="linha">Conexões ativas <b>${b.active_connections}</b></div>
         <div class="linha">Requisições atendidas <b>${b.total_requests.toLocaleString("pt-BR")}</b></div>
         <div class="linha">Peso <b>${b.weight}</b></div>
         <div class="linha">Falhas detectadas <b>${b.failures}</b></div>
-        <div class="barra"><i style="width:${pct}%; background:${CORES[nome] || "#7c3aed"}"></i></div>
+        <div class="barra"><i style="width:${pct}%"></i></div>
         <div class="linha"><span>Participação</span><b>${pct}%</b></div>
       </div>`;
     }).join("");
@@ -202,7 +212,7 @@ async function atualizar() {
       `<button class="${a === s.algorithm ? "ativo" : ""}" onclick="trocar('${a}')">${a.replaceAll("_", " ")}</button>`
     ).join(" ");
   } catch (e) {
-    document.getElementById("msg").textContent = "⚠️ Não foi possível falar com o balanceador";
+    document.getElementById("msg").textContent = "Não foi possível conectar ao balanceador.";
   }
 }
 
@@ -228,7 +238,7 @@ async function gerarTrafego() {
     }
   }
   await Promise.all(Array.from({ length: simultaneos }, trabalhador));
-  msg.textContent = "✅ 500 acessos enviados → " +
+  msg.textContent = "500 acessos enviados: " +
     Object.entries(contagem).sort().map(([k, v]) => k + ": " + v).join(" | ");
 }
 

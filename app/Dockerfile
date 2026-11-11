@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 WORKDIR /app
-COPY server.py .
+COPY server.py storefront.py ./
 
 ENV PYTHONUNBUFFERED=1 \
     PORT=5000
