@@ -1,0 +1,36 @@
+name: shopnow
+
+services:
+  app1:
+    build: ./app
+    container_name: shopnow-app1
+    environment:
+      SERVER_NAME: app1
+
+  app2:
+    build: ./app
+    container_name: shopnow-app2
+    environment:
+      SERVER_NAME: app2
+
+  app3:
+    build: ./app
+    container_name: shopnow-app3
+    environment:
+      SERVER_NAME: app3
+      # DELAY_MS: "100"
+
+  loadbalancer:
+    build: ./balancer
+    container_name: shopnow-lb
+    ports:
+      - "8080:8080"
+    environment:
+      BACKENDS: "app1:5000:3,app2:5000:2,app3:5000:1"
+      ALGORITHM: ${ALGORITHM:-round_robin}
+      HEALTH_INTERVAL: "2"
+      MAX_RETRIES: "3"
+    depends_on:
+      - app1
+      - app2
+      - app3
