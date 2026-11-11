@@ -115,6 +115,130 @@ class LoadBalancer:
         }
 
 
+# Painel visual do balanceador (http://localhost:8080/lb/painel).
+# Atualiza sozinho a cada 1 segundo consultando /lb/status.
+PAINEL_HTML = """<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>ShopNow • Painel do Balanceador</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Segoe UI", system-ui, sans-serif; background: #09090b; color: #fafafa; padding: 32px; }
+  h1 { font-size: 28px; } h1 span { color: #facc15; }
+  .sub { color: #a1a1aa; margin: 6px 0 28px; }
+  .resumo { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .box { background: #18181b; border: 1px solid #27272a; border-radius: 14px; padding: 18px; }
+  .box small { color: #a1a1aa; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+  .box div { font-size: 30px; font-weight: 800; margin-top: 6px; }
+  .servidores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .srv { background: #18181b; border-radius: 14px; padding: 22px; border: 2px solid #27272a; transition: all .3s; }
+  .srv.on  { border-color: #16a34a; }
+  .srv.off { border-color: #dc2626; background: #2a0f0f; }
+  .srv h2 { font-size: 22px; display: flex; justify-content: space-between; align-items: center; }
+  .tag { font-size: 12px; padding: 4px 10px; border-radius: 999px; font-weight: 800; }
+  .on .tag  { background: #16a34a; } .off .tag { background: #dc2626; animation: pisca 1s infinite; }
+  @keyframes pisca { 50% { opacity: .4; } }
+  .linha { display: flex; justify-content: space-between; color: #d4d4d8; margin-top: 12px; }
+  .linha b { color: #fff; }
+  .barra { height: 10px; background: #27272a; border-radius: 99px; margin-top: 16px; overflow: hidden; }
+  .barra i { display: block; height: 100%; border-radius: 99px; transition: width .4s; }
+  .controles { margin-top: 28px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .controles small { color: #a1a1aa; margin-right: 6px; }
+  button { padding: 10px 16px; border-radius: 8px; border: 1px solid #3f3f46; background: #18181b;
+           color: #fafafa; font-weight: 700; cursor: pointer; }
+  button.ativo { background: #facc15; color: #09090b; border-color: #facc15; }
+  button.trafego { background: #2563eb; border-color: #2563eb; margin-left: auto; }
+  #msg { color: #a1a1aa; margin-top: 14px; min-height: 20px; }
+</style>
+</head>
+<body>
+  <h1>⚖️ Painel do Balanceador — Shop<span>Now</span></h1>
+  <p class="sub">Atualiza a cada 1 segundo. Derrube um container (docker stop shopnow-app2) e veja o que acontece.</p>
+
+  <div class="resumo">
+    <div class="box"><small>Algoritmo</small><div id="alg">-</div></div>
+    <div class="box"><small>Requisições</small><div id="total">0</div></div>
+    <div class="box"><small>Servidores online</small><div id="online">-</div></div>
+    <div class="box"><small>Erros (503)</small><div id="erros">0</div></div>
+  </div>
+
+  <div class="servidores" id="servidores"></div>
+
+  <div class="controles">
+    <small>Trocar algoritmo:</small>
+    <span id="botoes"></span>
+    <button class="trafego" onclick="gerarTrafego()">🚀 Gerar tráfego (500 acessos)</button>
+  </div>
+  <p id="msg"></p>
+
+<script>
+const CORES = { app1: "#2563eb", app2: "#16a34a", app3: "#ea580c" };
+
+async function atualizar() {
+  try {
+    const s = await (await fetch("/lb/status")).json();
+    document.getElementById("alg").textContent = s.algorithm.replaceAll("_", " ");
+    document.getElementById("total").textContent = s.total_requests.toLocaleString("pt-BR");
+    document.getElementById("online").textContent = s.healthy + " / " + s.backends.length;
+    document.getElementById("erros").textContent = s.total_errors;
+
+    const soma = s.backends.reduce((a, b) => a + b.total_requests, 0) || 1;
+    document.getElementById("servidores").innerHTML = s.backends.map(b => {
+      const nome = b.name.split(":")[0];
+      const pct = (b.total_requests / soma * 100).toFixed(1);
+      return `<div class="srv ${b.healthy ? "on" : "off"}">
+        <h2>🖥️ ${nome} <span class="tag">${b.healthy ? "ONLINE" : "FORA DO AR"}</span></h2>
+        <div class="linha">Conexões ativas <b>${b.active_connections}</b></div>
+        <div class="linha">Requisições atendidas <b>${b.total_requests.toLocaleString("pt-BR")}</b></div>
+        <div class="linha">Peso <b>${b.weight}</b></div>
+        <div class="linha">Falhas detectadas <b>${b.failures}</b></div>
+        <div class="barra"><i style="width:${pct}%; background:${CORES[nome] || "#7c3aed"}"></i></div>
+        <div class="linha"><span>Participação</span><b>${pct}%</b></div>
+      </div>`;
+    }).join("");
+
+    document.getElementById("botoes").innerHTML = s.available_algorithms.map(a =>
+      `<button class="${a === s.algorithm ? "ativo" : ""}" onclick="trocar('${a}')">${a.replaceAll("_", " ")}</button>`
+    ).join(" ");
+  } catch (e) {
+    document.getElementById("msg").textContent = "⚠️ Não foi possível falar com o balanceador";
+  }
+}
+
+async function trocar(nome) {
+  await fetch("/lb/algorithm?name=" + nome);
+  document.getElementById("msg").textContent = "Algoritmo alterado para " + nome.replaceAll("_", " ");
+  atualizar();
+}
+
+async function gerarTrafego() {
+  const msg = document.getElementById("msg");
+  let feitos = 0, contagem = {};
+  const total = 500, simultaneos = 20;
+  async function trabalhador() {
+    while (feitos < total) {
+      feitos++;
+      try {
+        const r = await fetch("/?t=" + Math.random());
+        const s = r.headers.get("X-Server") || "?";
+        contagem[s] = (contagem[s] || 0) + 1;
+      } catch (e) { contagem["erro"] = (contagem["erro"] || 0) + 1; }
+      msg.textContent = "Enviando... " + Math.min(feitos, total) + "/" + total;
+    }
+  }
+  await Promise.all(Array.from({ length: simultaneos }, trabalhador));
+  msg.textContent = "✅ 500 acessos enviados → " +
+    Object.entries(contagem).sort().map(([k, v]) => k + ": " + v).join(" | ");
+}
+
+atualizar();
+setInterval(atualizar, 1000);
+</script>
+</body>
+</html>"""
+
+
 LB: LoadBalancer = None 
 
 
@@ -129,7 +253,17 @@ class ProxyHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _reply_html(self, html: str):
+        data = html.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
     def handle_admin(self, url):
+        if url.path in ("/lb/painel", "/lb/painel/"):
+            return self._reply_html(PAINEL_HTML)
         if url.path == "/lb/status":
             return self._reply(200, LB.status())
         if url.path == "/lb/algorithm":
